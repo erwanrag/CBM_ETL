@@ -1,72 +1,47 @@
 import pandas as pd
 from utils.connections import get_progress_connection
 from utils.parquet_cache import save_to_cache
+from tasks_simple.config_tasks import get_table_columns
 
-def extract_to_parquet(query: str, table_name: str, page_size: int = 50000):
-    """Extrait Progress par pages → sauvegarde Parquet"""
+def extract_to_parquet(table_name: str, where_clause: str = "", page_size: int = 50000):
+    """
+    Extrait Progress → applique alias SQL-safe → sauvegarde en Parquet.
+
+    Args:
+        table_name: Nom de la table (ex: "produit")
+        where_clause: Optionnel, clause WHERE sans le mot-clé (ex: "cod_pro LIKE 'A%'")
+        page_size: Non utilisé (future pagination possible)
+    """
     conn = get_progress_connection()
-    cursor = conn.cursor()
-    
-    # Compter sans sous-requête - extraire la table de FROM
-    # Exemple: "SELECT ... FROM PUB.produit WHERE ..." -> "PUB.produit"
+
+    # Récupérer la liste des colonnes depuis config.ETL_Columns
+    config_columns = get_table_columns(table_name)
+    cols_expr = [row["SourceExpression"] for _, row in config_columns.iterrows() if row["IsExcluded"] == 0]
+
+    if not cols_expr:
+        raise ValueError(f"Aucune colonne valide trouvée pour {table_name}")
+
+    # Construire la requête SQL Progress
+    query = f'SELECT {", ".join(cols_expr)} FROM PUB.{table_name}'
+    if where_clause:
+        query += f" WHERE {where_clause}"
+
+    print(f"🔎 Extraction avec alias explicites :")
+    print(f"   {query[:150]}...")
+
     try:
-        from_index = query.upper().find(" FROM ")
-        where_index = query.upper().find(" WHERE ")
-        
-        if where_index > 0:
-            table_part = query[from_index + 6:where_index].strip()
-            where_part = query[where_index + 7:].strip()
-            count_query = f"SELECT COUNT(*) FROM {table_part} WHERE {where_part}"
-        else:
-            table_part = query[from_index + 6:].strip()
-            count_query = f"SELECT COUNT(*) FROM {table_part}"
-        
-        cursor.execute(count_query)
-        total_rows = cursor.fetchone()[0]
-        print(f"Total a extraire : {total_rows:,} lignes")
+        df_final = pd.read_sql(query, conn)
+        print(f"✅ Extraction terminée : {len(df_final):,} lignes, {len(df_final.columns)} colonnes")
     except Exception as e:
-        print(f"Impossible de compter, extraction directe : {e}")
-        total_rows = None
-    
-    if total_rows == 0:
-        cursor.close()
+        print(f"❌ Erreur extraction : {e}")
         conn.close()
-        return save_to_cache(pd.DataFrame(), table_name, "raw")
-    
-    # Extraire par pages
-    all_data = []
-    offset = 0
-    page = 1
-    
-    while True:
-        paginated_query = f"{query} OFFSET {offset} ROWS FETCH NEXT {page_size} ROWS ONLY"
-        
-        if total_rows:
-            print(f"  Page {page}: lignes {offset:,} a {min(offset + page_size, total_rows):,}")
-        else:
-            print(f"  Page {page}: lignes {offset:,}+")
-        
-        df_page = pd.read_sql(paginated_query, conn)
-        
-        if df_page.empty:
-            break
-        
-        all_data.append(df_page)
-        offset += page_size
-        page += 1
-        
-        if total_rows and offset >= total_rows:
-            break
-    
-    cursor.close()
+        raise
+
     conn.close()
-    
-    if not all_data:
-        return save_to_cache(pd.DataFrame(), table_name, "raw")
-    
-    df_final = pd.concat(all_data, ignore_index=True)
-    df_final.columns = [col.replace("-", "_") for col in df_final.columns]
-    
-    print(f"Extraction terminee : {len(df_final):,} lignes en {page-1} pages")
-    
+
+    # Appliquer les noms SQL-safe (SqlName)
+    sql_names = [row["SqlName"] for _, row in config_columns.iterrows() if row["IsExcluded"] == 0]
+    df_final.columns = sql_names
+
+    # Sauvegarde en Parquet
     return save_to_cache(df_final, table_name, "raw")

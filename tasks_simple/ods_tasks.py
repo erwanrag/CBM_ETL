@@ -25,11 +25,15 @@ def ensure_ods_table(destination_table: str, table_name: str, primary_keys: str)
             WHERE TableName = ?
         """, conn, params=[table_name])
 
-        pk_list = [pk.strip() for pk in primary_keys.split(",")]
+        # ✅ Normaliser PK pour comparaison
+        pk_list = [pk.strip().replace("-", "_") for pk in primary_keys.split(",")]
         col_defs = []
+        
         for _, row in cols.iterrows():
             col_def = map_progress_to_sql(row)
-            if row["ColumnName"] in pk_list:
+            # Vérifier si c'est une PK (après normalisation)
+            clean_col_name = row["ColumnName"].replace("-", "_")
+            if clean_col_name in pk_list:
                 col_def = col_def.replace(" NULL", " NOT NULL")
             col_defs.append(col_def)
 
@@ -44,11 +48,11 @@ def ensure_ods_table(destination_table: str, table_name: str, primary_keys: str)
         
         if primary_keys:
             pk_name = f"PK_{table}"
-            pk_cols = ", ".join([f"[{pk.strip()}]" for pk in primary_keys.split(",")])
+            pk_cols = ", ".join([f"[{pk}]" for pk in pk_list])
             cursor.execute(f"ALTER TABLE {destination_table} ADD CONSTRAINT {pk_name} PRIMARY KEY ({pk_cols});")
         
         conn.commit()
-        print(f"Table {destination_table} creee")
+        print(f"✅ Table {destination_table} créée")
 
     cursor.close()
     conn.close()
@@ -57,13 +61,16 @@ def merge_to_ods(destination_table: str, table_name: str, primary_keys: str, col
     """Effectue l'upsert des données vers la table ODS"""
     engine = get_sql_engine()
     
+    # ✅ Normaliser les colonnes (au cas où)
+    columns_normalized = [col.replace("-", "_") for col in columns]
+    pk_list = [pk.strip().replace("-", "_") for pk in primary_keys.split(',')]
+    
     with engine.begin() as conn:
         if mode == "full":
             conn.execute(text(f"TRUNCATE TABLE {destination_table}"))
-            print(f"Table {destination_table} videe (mode FULL)")
+            print(f"Table {destination_table} vidée (mode FULL)")
 
-        insert_cols = columns + ["hashdiff", "ts_source", "load_ts"]
-        pk_list = [pk.strip() for pk in primary_keys.split(',')]
+        insert_cols = columns_normalized + ["hashdiff", "ts_source", "load_ts"]
 
         merge_sql = f"""
         MERGE {destination_table} AS tgt
@@ -78,7 +85,7 @@ def merge_to_ods(destination_table: str, table_name: str, primary_keys: str, col
         
         result = conn.execute(text(merge_sql))
         rows_affected = result.rowcount
-        print(f"MERGE termine - {rows_affected:,} lignes affectees")
+        print(f"✅ MERGE terminé - {rows_affected:,} lignes affectées")
     
     return rows_affected
 
@@ -91,4 +98,4 @@ def update_last_success(table_name: str):
     conn.commit()
     cursor.close()
     conn.close()
-    print(f"LastSuccessTs mis a jour pour {table_name}")
+    print(f"✅ LastSuccessTs mis à jour pour {table_name}")

@@ -11,7 +11,7 @@ def get_sql_type(col):
         scale = int(float(col["Scale"]))
 
     if dtype == "varchar":
-        # CHANGEMENT : plafonner à 500 caractères max
+        # Plafonner à 500 caractères max
         max_varchar = min(width, 500) if width else 255
         return f"NVARCHAR({max_varchar})"
     elif dtype == "integer":
@@ -41,7 +41,7 @@ def map_progress_to_sql(col):
     sql_type = get_sql_type(col)
     nullflag = "NULL" if str(col["NullFlag"]).upper() == "Y" else "NOT NULL"
     
-    # Normaliser le nom de colonne
+    # ✅ Normaliser le nom de colonne : remplacer tirets par underscores
     clean_name = col['ColumnName'].replace("-", "_")
     
     return f"[{clean_name}] {sql_type} {nullflag}"

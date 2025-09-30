@@ -1,7 +1,11 @@
 import sys
 import os
+import warnings
 from pathlib import Path
 from datetime import datetime
+
+warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -9,7 +13,7 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent.parent / ".env")
 
 from etl_logger import ETLLogger
-from tasks_simple.config_tasks import get_table_config, get_included_columns, build_query
+from tasks_simple.config_tasks import get_table_config, get_included_columns, build_where_clause
 from tasks_simple.extract_tasks import extract_to_parquet
 from tasks_simple.transform_tasks import transform_from_parquet
 from tasks_simple.staging_config_tasks import ensure_stg_table
@@ -39,13 +43,13 @@ def load_flow_simple(table_name: str, mode: str = "incremental"):
         print("\nEtape 1/5 : Configuration")
         config = get_table_config(table_name)
         columns = get_included_columns(table_name)
-        query = build_query(config, columns, mode=mode)
+        where_clause = build_where_clause(config, mode=mode)
         print(f"   Table : {config.DestinationTable}")
         print(f"   Colonnes : {len(columns)}")
         
         print("\nEtape 2/5 : Extraction")
         extract_start = datetime.now()
-        parquet_path = extract_to_parquet(query, table_name, page_size=50000)
+        parquet_path = extract_to_parquet(table_name, where_clause=where_clause)
         logger.log_step(table_name, "extract", "success", duration=(datetime.now()-extract_start).total_seconds())
         
         print("\nEtape 3/5 : Transformation")
