@@ -1,0 +1,39 @@
+# Credentials et secrets
+.env
+*.env
+config.ini
+credentials.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+prefect_env/
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs et données
+*.log
+*.csv
+*.xlsx
+*.db
+*.sqlite
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Prefect
+.prefect/
+prefect.db
