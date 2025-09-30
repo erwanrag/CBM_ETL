@@ -5,3 +5,4 @@ pyodbc>=4.0.39
 openpyxl       # pour lire/écrire Excel si besoin
 sqlalchemy>=2.0.0    # utile si tu veux gérer SQL Server autrement que par pyodbc
 python-dotenv>=1.0.0  # pour gérer les secrets (mots de passe, DSN) via .env
+pyarrow>=14.0.0
