@@ -29,6 +29,7 @@ build/
 *.xlsx
 *.db
 *.sqlite
+profiling/
 
 # OS
 .DS_Store
