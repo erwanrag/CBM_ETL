@@ -44,13 +44,13 @@ def get_table_config(table_name: str):
 
 @task
 def get_included_columns(table_name: str):
-    """Récupère la liste des colonnes à inclure (noms ORIGINAUX avec tirets)"""
+    """Récupère la liste des colonnes à inclure (noms SQL-safe normalisés)"""
     engine = get_sql_engine()
     query = text("""
-    SELECT ColumnName
+    SELECT SqlName
     FROM config.ETL_Columns
     WHERE TableName = :table_name AND IsExcluded = 0
-    ORDER BY ColumnName
+    ORDER BY SqlName
     """)
     
     with engine.connect() as conn:
@@ -59,8 +59,8 @@ def get_included_columns(table_name: str):
     if df.empty:
         raise ValueError(f"Aucune colonne valide trouvée pour {table_name}")
     
-    # Retourner les noms ORIGINAUX (avec tirets si présents)
-    return df["ColumnName"].tolist()
+    # Retourner les noms SQL-safe (gencod_v, mult_fou)
+    return df["SqlName"].tolist()
 
 @task
 def build_where_clause(config, mode="incremental"):

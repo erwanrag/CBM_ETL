@@ -4,6 +4,8 @@ import pandas as pd
 import numpy as np
 from utils.connections import get_sqlserver_connection
 from utils.parquet_cache import load_from_cache
+import warnings
+warnings.filterwarnings('ignore', category=FutureWarning)
 
 @task
 def load_staging_from_parquet(table_name: str):
@@ -35,16 +37,28 @@ def load_staging_from_parquet(table_name: str):
             sql_type = col_info[col]['type']
             max_len = col_info[col]['max_len']
             
-            # BIT → int
+            # BIT → int (gestion robuste de tous les formats)
             if sql_type == 'bit':
-                if df_to_load[col].dtype == 'bool':
-                    df_to_load[col] = df_to_load[col].astype(int)
-                df_to_load[col] = df_to_load[col].fillna(0).astype(int)
+                df_to_load[col] = (
+                    df_to_load[col]
+                    .replace({
+                        True: 1, False: 0,
+                        'True': 1, 'False': 0,
+                        'true': 1, 'false': 0,
+                        1: 1, 0: 0,
+                        '1': 1, '0': 0,
+                        'None': None, 'nan': None, '<NA>': None, '': None
+                    })
+                    .astype("Int64")  # nullable int
+                )
             
             # INT/BIGINT
             elif sql_type in ['int', 'bigint']:
-                df_to_load[col] = df_to_load[col].where(pd.notna(df_to_load[col]), None)
-                df_to_load[col] = df_to_load[col].apply(lambda x: int(x) if pd.notna(x) else None)
+                df_to_load[col] = (
+                    df_to_load[col]
+                    .replace({'None': None, 'nan': None, '<NA>': None, '': None})
+                    .astype("Int64")  # nullable int
+                )
             
             # DECIMAL/NUMERIC
             elif sql_type in ['decimal', 'numeric']:
