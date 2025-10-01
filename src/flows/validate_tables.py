@@ -7,7 +7,7 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from dotenv import load_dotenv
-load_dotenv(Path(__file__).parent.parent.parent / \".env\")
+load_dotenv(Path(__file__).parent.parent.parent / ".env")
 
 from src.flows.load_flow_simple import load_flow_simple
 from src.utils.connections import get_sqlserver_connection

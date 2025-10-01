@@ -6,7 +6,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from src.etl_logger import ETLLogger
 
 from dotenv import load_dotenv
-load_dotenv(Path(__file__).parent.parent.parent / \".env\")
+load_dotenv(Path(__file__).parent.parent.parent / ".env")
 
 import pandas as pd
 import pyodbc

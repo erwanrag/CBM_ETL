@@ -1,11 +1,14 @@
 # Credentials et secrets
 .env
 *.env
+!.env.template
+!config/.env.template
 config.ini
 credentials.json
 
 # Python
 __pycache__/
+*/__pycache__/
 *.py[cod]
 *$py.class
 *.so
@@ -16,6 +19,7 @@ prefect_env/
 *.egg-info/
 dist/
 build/
+.eggs/
 
 # IDE
 .vscode/
@@ -23,22 +27,44 @@ build/
 *.swp
 *.swo
 
-# Logs et données
+# Logs et données SENSIBLES
 *.log
+data/logs/**
+!data/logs/.gitkeep
+!data/logs/*/.gitkeep
+
+# Fichiers temporaires SENSIBLES
 *.csv
 *.xlsx
-*.db
-*.sqlite
+*.xls
+!docs/**/*.xlsx
 profiling/
 
-# Cache ETL
-cache/*
-!cache/.gitkeep
+# Cache Parquet - DONNÉES SENSIBLES
+*.parquet
+data/cache/**
+!data/cache/.gitkeep
+src/cache/**
+
+# Base de données
+*.db
+*.sqlite
 
 # OS
 .DS_Store
 Thumbs.db
+*.tmp
 
 # Prefect
 .prefect/
 prefect.db
+
+# Reports générés (contiennent potentiellement des données)
+reports/**/*.csv
+reports/**/*.txt
+!reports/**/.gitkeep
+
+# Backup et fichiers temporaires
+*.bak
+*.backup
+*~

@@ -12,7 +12,7 @@ from datetime import datetime
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from dotenv import load_dotenv
-load_dotenv(Path(__file__).parent.parent.parent / \".env\")
+load_dotenv(Path(__file__).parent.parent.parent / ".env")
 
 from src.etl_logger import ETLLogger
 from src.tasks.config_tasks import get_table_config, get_included_columns, build_where_clause
