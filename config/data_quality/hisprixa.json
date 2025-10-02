@@ -1,0 +1,11 @@
+{
+  "table_name": "hisprixa",
+  "checks": {
+    "not_null": ["cod_fou", "cod_pro", "dat_px", "hr_mod"],
+    "unique": [["cod_fou", "cod_pro", "dat_px", "hr_mod"]],
+    "min_fill_rate": 0.95,
+    "ranges": {
+      "px_ach": {"min": 0, "max": 100000}
+    }
+  }
+}

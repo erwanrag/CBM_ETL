@@ -19,7 +19,7 @@ from src.tasks.transform_tasks import transform_from_parquet
 from src.tasks.staging_config_tasks import ensure_stg_table
 from src.tasks.staging_tasks import load_staging_from_parquet
 from src.tasks.ods_tasks import ensure_ods_table, merge_to_ods, update_last_success
-
+from src.utils.parquet_cache import load_from_cache  
 SQLSERVER_CONN = (
     "DRIVER={ODBC Driver 17 for SQL Server};"
     f"SERVER={os.getenv('SQL_SERVER')};"
@@ -57,6 +57,33 @@ def load_flow_simple(table_name: str, mode: str = "incremental"):
         transformed_path = transform_from_parquet(config)
         logger.log_step(table_name, "transform", "success", duration=(datetime.now()-transform_start).total_seconds())
         
+        print("\n🔍 Étape 3.5/5 : Data Quality")
+        from src.utils.data_quality import DataQualityValidator
+        import json
+
+        # Charger config DQ
+        dq_config_file = Path(__file__).parent.parent.parent / f"config/data_quality/{table_name}.json"
+        if dq_config_file.exists():
+            with open(dq_config_file) as f:
+                dq_config = json.load(f)['checks']
+            
+            # Valider
+            validator = DataQualityValidator(table_name)
+            df_to_check = load_from_cache(table_name, "transformed")
+            validator.run_all_checks(df_to_check, dq_config)
+            
+            # Logger résultats
+            from src.utils.data_quality import DataQualityMonitor
+            monitor = DataQualityMonitor(SQLSERVER_CONN)
+            for result in validator.results:
+                monitor.log_quality_check(result, table_name)
+            
+            # Bloquer si critique
+            if validator.get_summary()['has_critical_failure']:
+                raise Exception(f"❌ Échec Data Quality critique sur {table_name}")
+            
+            validator.print_report()
+
         print("\nEtape 4/5 : Staging")
         ensure_stg_table(table_name, config.PrimaryKeyCols)
         load_start = datetime.now()

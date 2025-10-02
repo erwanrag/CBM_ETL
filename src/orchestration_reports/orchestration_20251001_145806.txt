@@ -1,0 +1,28 @@
+RAPPORT ORCHESTRATION ETL
+Démarrage : 2025-10-01 14:55:51
+Durée : 2.3 min
+================================================================================
+
+
+HIGH
+--------------------------------------------------------------------------------
+✅ client                            2.3s
+✅ fournis                           1.0s
+❌ produit                           6.1s
+   Erreur : (pyodbc.ProgrammingError) ('42S22', "[42S22] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Nom de colonne non valide\xa0: 'gencod-v'. (207) (SQLExecDirectW); [42S22] [Microsoft][ODBC Driver 17
+
+NORMAL
+--------------------------------------------------------------------------------
+✅ hisprixa                          2.3s
+✅ lignecli                        124.0s
+
+================================================================================
+ÉCHECS DÉTAILLÉS
+--------------------------------------------------------------------------------
+
+produit:
+  (pyodbc.ProgrammingError) ('42S22', "[42S22] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Nom de colonne non valide\xa0: 'gencod-v'. (207) (SQLExecDirectW); [42S22] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Nom de colonne non valide\xa0: 'mult-fou'. (207); [42S22] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Nom de colonne non valide\xa0: 'gencod-v'. (207)")
+[SQL: 
+        MERGE ods.produit AS tgt
+        USING stg.produit AS src
+        ON tgt.[cod_pro] = src.[cod_

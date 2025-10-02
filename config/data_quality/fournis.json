@@ -1,0 +1,8 @@
+{
+  "table_name": "fournis",
+  "checks": {
+    "not_null": ["cod_fou"],
+    "unique": [["cod_fou"]],
+    "min_fill_rate": 0.90
+  }
+}

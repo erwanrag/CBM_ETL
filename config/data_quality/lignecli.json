@@ -1,0 +1,8 @@
+{
+  "table_name": "lignecli",
+  "checks": {
+    "not_null": ["uniq_id"],
+    "unique": [["uniq_id"]],
+    "min_fill_rate": 0.90
+  }
+}

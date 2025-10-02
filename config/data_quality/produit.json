@@ -1,0 +1,8 @@
+{
+  "table_name": "produit",
+  "checks": {
+    "not_null": ["cod_pro"],
+    "unique": [["cod_pro"]],
+    "min_fill_rate": 0.90
+  }
+}

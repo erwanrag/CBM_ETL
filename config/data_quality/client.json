@@ -1,0 +1,8 @@
+{
+  "table_name": "client",
+  "checks": {
+    "not_null": ["cod_cli"],
+    "unique": [["cod_cli"]],
+    "min_fill_rate": 0.90
+  }
+}
