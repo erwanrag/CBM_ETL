@@ -1,8 +1,9 @@
 {
   "table_name": "lignecli",
   "checks": {
-    "not_null": ["uniq_id"],
+    "not_null": ["uniq_id", "cod_cli", "cod_pro"],
     "unique": [["uniq_id"]],
-    "min_fill_rate": 0.90
+    "min_fill_rate": 0.90,
+    
+
   }
-}

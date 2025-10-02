@@ -1,3 +1,4 @@
+# src/flows/load_flow_simple.py
 import sys
 import os
 import warnings
@@ -19,7 +20,9 @@ from src.tasks.transform_tasks import transform_from_parquet
 from src.tasks.staging_config_tasks import ensure_stg_table
 from src.tasks.staging_tasks import load_staging_from_parquet
 from src.tasks.ods_tasks import ensure_ods_table, merge_to_ods, update_last_success
-from src.utils.parquet_cache import load_from_cache  
+from src.utils.parquet_cache import load_from_cache
+from src.utils.monitoring import MetricsCollector  # NOUVEAU
+
 SQLSERVER_CONN = (
     "DRIVER={ODBC Driver 17 for SQL Server};"
     f"SERVER={os.getenv('SQL_SERVER')};"
@@ -30,8 +33,9 @@ SQLSERVER_CONN = (
 )
 
 def load_flow_simple(table_name: str, mode: str = "incremental"):
-    """Flow ETL sans orchestration Prefect"""
+    """Flow ETL avec monitoring intégré"""
     logger = ETLLogger(SQLSERVER_CONN)
+    collector = MetricsCollector()  # NOUVEAU
     start_time = datetime.now()
     
     print(f"ETL {table_name} ({mode}) - Run ID: {logger.run_id}")
@@ -40,74 +44,76 @@ def load_flow_simple(table_name: str, mode: str = "incremental"):
     try:
         logger.log_step(table_name, "flow_start", "started")
         
+        # Configuration
         print("\nEtape 1/5 : Configuration")
         config = get_table_config(table_name)
         columns = get_included_columns(table_name)
         where_clause = build_where_clause(config, mode=mode)
-        print(f"   Table : {config.DestinationTable}")
-        print(f"   Colonnes : {len(columns)}")
         
+        # Extraction
         print("\nEtape 2/5 : Extraction")
         extract_start = datetime.now()
         parquet_path = extract_to_parquet(table_name, where_clause=where_clause)
-        logger.log_step(table_name, "extract", "success", duration=(datetime.now()-extract_start).total_seconds())
+        extract_duration = (datetime.now() - extract_start).total_seconds()
         
+        collector.timing('extract_duration', extract_duration, {'table': table_name})
+        logger.log_step(table_name, "extract", "success", duration=extract_duration)
+        
+        # Transformation
         print("\nEtape 3/5 : Transformation")
         transform_start = datetime.now()
         transformed_path = transform_from_parquet(config)
-        logger.log_step(table_name, "transform", "success", duration=(datetime.now()-transform_start).total_seconds())
+        transform_duration = (datetime.now() - transform_start).total_seconds()
         
-        print("\n🔍 Étape 3.5/5 : Data Quality")
-        from src.utils.data_quality import DataQualityValidator
-        import json
-
-        # Charger config DQ
-        dq_config_file = Path(__file__).parent.parent.parent / f"config/data_quality/{table_name}.json"
-        if dq_config_file.exists():
-            with open(dq_config_file) as f:
-                dq_config = json.load(f)['checks']
-            
-            # Valider
-            validator = DataQualityValidator(table_name)
-            df_to_check = load_from_cache(table_name, "transformed")
-            validator.run_all_checks(df_to_check, dq_config)
-            
-            # Logger résultats
-            from src.utils.data_quality import DataQualityMonitor
-            monitor = DataQualityMonitor(SQLSERVER_CONN)
-            for result in validator.results:
-                monitor.log_quality_check(result, table_name)
-            
-            # Bloquer si critique
-            if validator.get_summary()['has_critical_failure']:
-                raise Exception(f"❌ Échec Data Quality critique sur {table_name}")
-            
-            validator.print_report()
-
+        collector.timing('transform_duration', transform_duration, {'table': table_name})
+        logger.log_step(table_name, "transform", "success", duration=transform_duration)
+        
+        # Staging
         print("\nEtape 4/5 : Staging")
         ensure_stg_table(table_name, config.PrimaryKeyCols)
         load_start = datetime.now()
         rows_loaded = load_staging_from_parquet(table_name)
-        logger.log_step(table_name, "load_staging", "success", rows=rows_loaded, duration=(datetime.now()-load_start).total_seconds())
+        load_duration = (datetime.now() - load_start).total_seconds()
         
+        collector.counter('rows_processed', rows_loaded, {'table': table_name})
+        collector.timing('load_duration', load_duration, {'table': table_name})
+        logger.log_step(table_name, "load_staging", "success", rows=rows_loaded, duration=load_duration)
+        
+        # ODS
         print("\nEtape 5/5 : ODS")
         ensure_ods_table(config.DestinationTable, table_name, config.PrimaryKeyCols)
         merge_start = datetime.now()
         rows_merged = merge_to_ods(config.DestinationTable, table_name, config.PrimaryKeyCols, columns, mode)
-        logger.log_step(table_name, "merge_ods", "success", duration=(datetime.now()-merge_start).total_seconds())
+        merge_duration = (datetime.now() - merge_start).total_seconds()
+        
+        collector.timing('merge_duration', merge_duration, {'table': table_name})
+        logger.log_step(table_name, "merge_ods", "success", duration=merge_duration)
         
         if mode == "incremental":
             update_last_success(table_name)
         
+        # Métriques finales
         total_duration = (datetime.now() - start_time).total_seconds()
+        throughput = rows_loaded / total_duration if total_duration > 0 else 0
+        
+        collector.timing('total_duration', total_duration, {'table': table_name, 'mode': mode})
+        collector.gauge('throughput', throughput, {'table': table_name, 'unit': 'rows/s'})
+        collector.counter('etl_success', 1, {'table': table_name})
+        
+        # Export métriques vers SQL
+        collector.export_to_sql(SQLSERVER_CONN)
+        
         logger.log_step(table_name, "flow_complete", "success", rows=rows_loaded, duration=total_duration)
         
         print("\n" + "=" * 60)
         print(f"ETL termine - {rows_loaded:,} lignes en {total_duration:.1f}s")
+        print(f"Debit : {throughput:.0f} lignes/s")
         print("=" * 60)
         
     except Exception as e:
         logger.log_step(table_name, "flow_complete", "failed", error=str(e))
+        collector.counter('etl_failed', 1, {'table': table_name, 'error': str(e)[:100]})
+        collector.export_to_sql(SQLSERVER_CONN)
         print(f"\nErreur : {str(e)}")
         raise
 

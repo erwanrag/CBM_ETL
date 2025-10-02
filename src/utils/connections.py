@@ -1,20 +1,38 @@
+# src/utils/connections.py
 import pyodbc
 import os
 from sqlalchemy import create_engine
 from pathlib import Path
 from dotenv import load_dotenv
+from src.utils.progress_breaker import with_progress_breaker  # NOUVEAU
 
-# Charger .env depuis la racine du projet
-env_path = Path(__file__).parent.parent / ".env"
-load_dotenv(env_path)
+# Charger .env
+current_dir = Path(__file__).resolve()
+for parent in [current_dir.parent.parent.parent, current_dir.parent.parent]:
+    env_file = parent / ".env"
+    if env_file.exists():
+        load_dotenv(env_file)
+        break
+else:
+    load_dotenv()
 
+@with_progress_breaker  
 def get_progress_connection():
-    """Connexion Progress OpenEdge"""
+    """Connexion Progress avec circuit breaker"""
     dsn = f"DSN={os.getenv('PROGRESS_DSN')};UID={os.getenv('PROGRESS_USER')};PWD={os.getenv('PROGRESS_PWD')}"
-    return pyodbc.connect(dsn)
+    
+    print("🔌 Connexion Progress...")
+    
+    try:
+        conn = pyodbc.connect(dsn, timeout=30)
+        print("✅ Connexion Progress établie")
+        return conn
+    except Exception as e:
+        print(f"❌ Échec connexion Progress : {e}")
+        raise
 
 def get_sqlserver_connection():
-    """Connexion SQL Server via pyodbc (pour requêtes DDL/config)"""
+    """Connexion SQL Server via pyodbc"""
     conn_str = (
         "DRIVER={ODBC Driver 17 for SQL Server};"
         f"SERVER={os.getenv('SQL_SERVER')};"
@@ -26,7 +44,7 @@ def get_sqlserver_connection():
     return pyodbc.connect(conn_str)
 
 def get_sql_engine():
-    """Engine SQLAlchemy pour chargements rapides (méthode multi)"""
+    """Engine SQLAlchemy"""
     server = os.getenv('SQL_SERVER')
     database = os.getenv('SQL_DATABASE')
     
