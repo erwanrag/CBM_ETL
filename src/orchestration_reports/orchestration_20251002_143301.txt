@@ -1,0 +1,85 @@
+RAPPORT ORCHESTRATION ETL
+Démarrage : 2025-10-02 14:22:40
+Durée : 10.4 min
+================================================================================
+
+
+HIGH
+--------------------------------------------------------------------------------
+✅ client                           12.4s
+✅ fournis                           4.8s
+✅ produit                         274.7s
+
+NORMAL
+--------------------------------------------------------------------------------
+✅ clcondi                          90.5s
+✅ crn                               0.8s
+❌ crnar                            70.1s
+   Erreur : (pyodbc.IntegrityError) ('23000', "[23000] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Violation de la contrainte PRIMARY KEY «\xa0PK_crnar\xa0». Impossible d'insérer une clé en double dans 
+❌ deppro                           73.8s
+   Erreur : ('42S22', "[42S22] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Le nom de colonne 'uniq_id' n'existe pas dans la table ou la vue cible. (1911) (SQLExecDirectW)")
+✅ entetcli                         13.1s
+✅ entetfou                          6.0s
+❌ focondi                          26.8s
+   Erreur : (pyodbc.IntegrityError) ('23000', "[23000] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Violation de la contrainte PRIMARY KEY «\xa0PK_focondi\xa0». Impossible d'insérer une clé en double dan
+❌ hisprixa                         47.6s
+   Erreur : ('08S01', '[08S01] [Microsoft][ODBC Driver 17 for SQL Server]Échec de la liaison de communication (0) (SQLSetConnectAttr(SQL_ATTR_AUTOCOMMIT)); [08S01] [Microsoft][ODBC Driver 17 for SQL Server]La con
+❌ histolig                          0.1s
+   Erreur : ('08S01', '[08S01] [Microsoft][ODBC Driver 17 for SQL Server]Échec de la liaison de communication (0) (SQLSetConnectAttr(SQL_ATTR_AUTOCOMMIT)); [08S01] [Microsoft][ODBC Driver 17 for SQL Server]La con
+❌ lignecli                          0.2s
+   Erreur : ('08S01', '[08S01] [Microsoft][ODBC Driver 17 for SQL Server]Échec de la liaison de communication (0) (SQLSetConnectAttr(SQL_ATTR_AUTOCOMMIT)); [08S01] [Microsoft][ODBC Driver 17 for SQL Server]La con
+❌ lignefou                          0.1s
+   Erreur : ('08S01', '[08S01] [Microsoft][ODBC Driver 17 for SQL Server]Échec de la liaison de communication (0) (SQLSetConnectAttr(SQL_ATTR_AUTOCOMMIT)); [08S01] [Microsoft][ODBC Driver 17 for SQL Server]La con
+❌ lldespro                          0.1s
+   Erreur : ('08S01', '[08S01] [Microsoft][ODBC Driver 17 for SQL Server]Échec de la liaison de communication (0) (SQLSetConnectAttr(SQL_ATTR_AUTOCOMMIT)); [08S01] [Microsoft][ODBC Driver 17 for SQL Server]La con
+❌ prnomenc                          0.1s
+   Erreur : ('08S01', '[08S01] [Microsoft][ODBC Driver 17 for SQL Server]Échec de la liaison de communication (0) (SQLSetConnectAttr(SQL_ATTR_AUTOCOMMIT)); [08S01] [Microsoft][ODBC Driver 17 for SQL Server]La con
+❌ prprixv                           0.0s
+   Erreur : ('08S01', '[08S01] [Microsoft][ODBC Driver 17 for SQL Server]Échec de la liaison de communication (0) (SQLSetConnectAttr(SQL_ATTR_AUTOCOMMIT)); [08S01] [Microsoft][ODBC Driver 17 for SQL Server]La con
+❌ stock                             0.0s
+   Erreur : ('08S01', '[08S01] [Microsoft][ODBC Driver 17 for SQL Server]Échec de la liaison de communication (0) (SQLSetConnectAttr(SQL_ATTR_AUTOCOMMIT)); [08S01] [Microsoft][ODBC Driver 17 for SQL Server]La con
+
+================================================================================
+ÉCHECS DÉTAILLÉS
+--------------------------------------------------------------------------------
+
+crnar:
+  (pyodbc.IntegrityError) ('23000', "[23000] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Violation de la contrainte PRIMARY KEY «\xa0PK_crnar\xa0». Impossible d'insérer une clé en double dans l'objet «\xa0ods.crnar\xa0». Valeur de clé dupliquée\xa0: (0, 9). (2627) (SQLExecDirectW); [23000] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]L'instruction a été arrêtée. (3621)")
+[SQL: 
+        MERGE ods.crnar AS tgt
+        USING stg.crnar AS src
+        ON tgt.[cod_pro] = src.[cod_pro]
+
+deppro:
+  ('42S22', "[42S22] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Le nom de colonne 'uniq_id' n'existe pas dans la table ou la vue cible. (1911) (SQLExecDirectW)")
+
+focondi:
+  (pyodbc.IntegrityError) ('23000', "[23000] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Violation de la contrainte PRIMARY KEY «\xa0PK_focondi\xa0». Impossible d'insérer une clé en double dans l'objet «\xa0ods.focondi\xa0». Valeur de clé dupliquée\xa0: (0, 58). (2627) (SQLExecDirectW); [23000] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]L'instruction a été arrêtée. (3621)")
+[SQL: 
+        MERGE ods.focondi AS tgt
+        USING stg.focondi AS src
+        ON tgt.[cod_pro] = src.
+
+hisprixa:
+  ('08S01', '[08S01] [Microsoft][ODBC Driver 17 for SQL Server]Échec de la liaison de communication (0) (SQLSetConnectAttr(SQL_ATTR_AUTOCOMMIT)); [08S01] [Microsoft][ODBC Driver 17 for SQL Server]La connexion est interrompue et la récupération est impossible. Le pilote client a tenté de récupérer la connexion une ou plusieurs fois et toutes les tentatives ont échoué. Augmentez la valeur de ConnectRetryCount pour augmenter le nombre de tentatives de récupération. (0)')
+
+histolig:
+  ('08S01', '[08S01] [Microsoft][ODBC Driver 17 for SQL Server]Échec de la liaison de communication (0) (SQLSetConnectAttr(SQL_ATTR_AUTOCOMMIT)); [08S01] [Microsoft][ODBC Driver 17 for SQL Server]La connexion est interrompue et la récupération est impossible. Le pilote client a tenté de récupérer la connexion une ou plusieurs fois et toutes les tentatives ont échoué. Augmentez la valeur de ConnectRetryCount pour augmenter le nombre de tentatives de récupération. (0)')
+
+lignecli:
+  ('08S01', '[08S01] [Microsoft][ODBC Driver 17 for SQL Server]Échec de la liaison de communication (0) (SQLSetConnectAttr(SQL_ATTR_AUTOCOMMIT)); [08S01] [Microsoft][ODBC Driver 17 for SQL Server]La connexion est interrompue et la récupération est impossible. Le pilote client a tenté de récupérer la connexion une ou plusieurs fois et toutes les tentatives ont échoué. Augmentez la valeur de ConnectRetryCount pour augmenter le nombre de tentatives de récupération. (0)')
+
+lignefou:
+  ('08S01', '[08S01] [Microsoft][ODBC Driver 17 for SQL Server]Échec de la liaison de communication (0) (SQLSetConnectAttr(SQL_ATTR_AUTOCOMMIT)); [08S01] [Microsoft][ODBC Driver 17 for SQL Server]La connexion est interrompue et la récupération est impossible. Le pilote client a tenté de récupérer la connexion une ou plusieurs fois et toutes les tentatives ont échoué. Augmentez la valeur de ConnectRetryCount pour augmenter le nombre de tentatives de récupération. (0)')
+
+lldespro:
+  ('08S01', '[08S01] [Microsoft][ODBC Driver 17 for SQL Server]Échec de la liaison de communication (0) (SQLSetConnectAttr(SQL_ATTR_AUTOCOMMIT)); [08S01] [Microsoft][ODBC Driver 17 for SQL Server]La connexion est interrompue et la récupération est impossible. Le pilote client a tenté de récupérer la connexion une ou plusieurs fois et toutes les tentatives ont échoué. Augmentez la valeur de ConnectRetryCount pour augmenter le nombre de tentatives de récupération. (0)')
+
+prnomenc:
+  ('08S01', '[08S01] [Microsoft][ODBC Driver 17 for SQL Server]Échec de la liaison de communication (0) (SQLSetConnectAttr(SQL_ATTR_AUTOCOMMIT)); [08S01] [Microsoft][ODBC Driver 17 for SQL Server]La connexion est interrompue et la récupération est impossible. Le pilote client a tenté de récupérer la connexion une ou plusieurs fois et toutes les tentatives ont échoué. Augmentez la valeur de ConnectRetryCount pour augmenter le nombre de tentatives de récupération. (0)')
+
+prprixv:
+  ('08S01', '[08S01] [Microsoft][ODBC Driver 17 for SQL Server]Échec de la liaison de communication (0) (SQLSetConnectAttr(SQL_ATTR_AUTOCOMMIT)); [08S01] [Microsoft][ODBC Driver 17 for SQL Server]La connexion est interrompue et la récupération est impossible. Le pilote client a tenté de récupérer la connexion une ou plusieurs fois et toutes les tentatives ont échoué. Augmentez la valeur de ConnectRetryCount pour augmenter le nombre de tentatives de récupération. (0)')
+
+stock:
+  ('08S01', '[08S01] [Microsoft][ODBC Driver 17 for SQL Server]Échec de la liaison de communication (0) (SQLSetConnectAttr(SQL_ATTR_AUTOCOMMIT)); [08S01] [Microsoft][ODBC Driver 17 for SQL Server]La connexion est interrompue et la récupération est impossible. Le pilote client a tenté de récupérer la connexion une ou plusieurs fois et toutes les tentatives ont échoué. Augmentez la valeur de ConnectRetryCount pour augmenter le nombre de tentatives de récupération. (0)')

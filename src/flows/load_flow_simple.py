@@ -20,8 +20,8 @@ from src.tasks.transform_tasks import transform_from_parquet
 from src.tasks.staging_config_tasks import ensure_stg_table
 from src.tasks.staging_tasks import load_staging_from_parquet
 from src.tasks.ods_tasks import ensure_ods_table, merge_to_ods, update_last_success
-from src.utils.parquet_cache import load_from_cache
-from src.utils.monitoring import MetricsCollector  # NOUVEAU
+from src.flows.profiling_flow import profiling_flow 
+from src.utils.monitoring import MetricsCollector
 
 SQLSERVER_CONN = (
     "DRIVER={ODBC Driver 17 for SQL Server};"
@@ -32,13 +32,28 @@ SQLSERVER_CONN = (
     "Command Timeout=600;"
 )
 
-def load_flow_simple(table_name: str, mode: str = "incremental"):
-    """Flow ETL avec monitoring intégré"""
+def load_flow_simple(
+    table_name: str, 
+    mode: str = "incremental",
+    enable_profiling: bool = False,  # NOUVEAU
+    profiling_days_threshold: int = 14  # NOUVEAU
+):
+    """
+    Flow ETL avec monitoring intégré et profiling optionnel
+    
+    Args:
+        table_name: Nom de la table
+        mode: 'full' ou 'incremental'
+        enable_profiling: Si True, vérifie et profile si nécessaire (après staging)
+        profiling_days_threshold: Seuil jours pour re-profiling
+    """
     logger = ETLLogger(SQLSERVER_CONN)
-    collector = MetricsCollector()  # NOUVEAU
+    collector = MetricsCollector()
     start_time = datetime.now()
     
     print(f"ETL {table_name} ({mode}) - Run ID: {logger.run_id}")
+    if enable_profiling:
+        print(f"   Profiling : Activé (seuil: {profiling_days_threshold}j)")
     print("=" * 60)
     
     try:
@@ -79,6 +94,31 @@ def load_flow_simple(table_name: str, mode: str = "incremental"):
         collector.timing('load_duration', load_duration, {'table': table_name})
         logger.log_step(table_name, "load_staging", "success", rows=rows_loaded, duration=load_duration)
         
+        # ========== PROFILING OPTIONNEL (APRÈS STAGING) ==========
+        if enable_profiling:
+            print("\n⚡ Étape 4.5 : Vérification profiling")
+            try:
+                profiling_result = profiling_flow(
+                    table_name=table_name,
+                    force=False,
+                    days_threshold=profiling_days_threshold,
+                    auto_apply=True,  # Auto-apply en mode intégré
+                    min_empty_pct=90.0
+                )
+                
+                if profiling_result['status'] == 'success':
+                    print(f"✅ Profiling mis à jour : {profiling_result['excluded_columns']} colonnes exclues")
+                    
+                    # Recharger colonnes après exclusions
+                    columns = get_included_columns(table_name)
+                    print(f"📊 Colonnes actives mises à jour : {len(columns)}")
+                    
+                elif profiling_result['status'] == 'skipped':
+                    print(f"⏭️  Profiling skippé (récent)")
+                
+            except Exception as e:
+                print(f"⚠️  Profiling échoué (ETL continue) : {e}")
+        
         # ODS
         print("\nEtape 5/5 : ODS")
         ensure_ods_table(config.DestinationTable, table_name, config.PrimaryKeyCols)
@@ -118,10 +158,19 @@ def load_flow_simple(table_name: str, mode: str = "incremental"):
         raise
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: python load_flow_simple.py <table> [full|incremental]")
-        sys.exit(1)
+    import argparse
     
-    table_name = sys.argv[1]
-    mode = sys.argv[2] if len(sys.argv) > 2 else "incremental"
-    load_flow_simple(table_name, mode)
+    parser = argparse.ArgumentParser(description='ETL Flow avec profiling optionnel')
+    parser.add_argument('table_name', help='Nom de la table')
+    parser.add_argument('mode', nargs='?', default='incremental', choices=['full', 'incremental'])
+    parser.add_argument('--enable-profiling', action='store_true', help='Activer profiling automatique')
+    parser.add_argument('--profiling-days', type=int, default=14, help='Seuil jours re-profiling')
+    
+    args = parser.parse_args()
+    
+    load_flow_simple(
+        args.table_name, 
+        args.mode,
+        enable_profiling=args.enable_profiling,
+        profiling_days_threshold=args.profiling_days
+    )
