@@ -57,7 +57,7 @@ def ensure_ods_table(destination_table: str, table_name: str, primary_keys: str)
 
 @task
 def merge_to_ods(destination_table: str, table_name: str, primary_keys: str, columns: list, mode: str):
-    """Effectue l'upsert des données vers la table ODS"""
+    """Effectue l'upsert vers ODS (colonnes déjà en SqlName)"""
     engine = get_sql_engine()
     
     with engine.begin() as conn:
@@ -65,6 +65,7 @@ def merge_to_ods(destination_table: str, table_name: str, primary_keys: str, col
             conn.execute(text(f"TRUNCATE TABLE {destination_table}"))
             print(f"Table {destination_table} vidée (mode FULL)")
 
+        # Colonnes déjà en SqlName (underscores) grâce à get_included_columns()
         insert_cols = columns + ["hashdiff", "ts_source", "load_ts"]
         pk_list = [pk.strip() for pk in primary_keys.split(',')]
 

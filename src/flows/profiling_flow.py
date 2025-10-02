@@ -19,7 +19,7 @@ SQLSERVER_CONN = (
 # Extraction Progress
 # ------------------------------
 @task
-def extract_sample(table_name: str, table_owner: str = "PUB", sample_size: int = 50000):
+def extract_sample(table_name: str, table_owner: str = "PUB", sample_size: int = 100000):
     # Connexion SQL Server pour lire la config
     sql_conn = pyodbc.connect(SQLSERVER_CONN)
     query_conf = """
